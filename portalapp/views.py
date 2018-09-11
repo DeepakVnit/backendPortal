@@ -158,9 +158,7 @@ class ProfileRetrieveAPIView(RetrieveUpdateAPIView):
             if request.GET.get('email'):
                 user_email = request.GET.get('email')
 
-            profile = Profile.objects.select_related('user').get(
-                user__email=user_email
-            )
+            profile = Profile.objects.select_related('user').get(user__email=user_email).order_by('id')
             serializer = self.serializer_class(profile)
         except ProfileDoesNotExist:
             raise ProfileDoesNotExist
@@ -194,11 +192,11 @@ class ProjectRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, ModelObj
         search_filter = query_filter(q_param)
         email = q_param.get('email')
         if email:
-            queryset = Project.objects.filter(profile__user__email=email)
+            queryset = Project.objects.filter(profile__user__email=email).order_by('id')
         elif search_filter:
-            queryset = Project.objects.filter(**search_filter)
+            queryset = Project.objects.filter(**search_filter).order_by('id')
         else:
-            queryset = Project.objects.filter(profile=self.request.user.profile)
+            queryset = Project.objects.filter(profile=self.request.user.profile).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -262,11 +260,11 @@ class BasicRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, ModelObjec
         search_filter = query_filter(q_param)
         email = q_param.get('email')
         if email:
-            queryset = self.model_class.objects.filter(profile__user__email=email)
+            queryset = self.model_class.objects.filter(profile__user__email=email).order_by('id')
         elif search_filter:
-            queryset = self.model_class.objects.filter(**search_filter)
+            queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         else:
-            queryset = self.model_class.objects.filter(profile=self.request.user.profile)
+            queryset = self.model_class.objects.filter(profile=self.request.user.profile).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -330,11 +328,11 @@ class ExperienceRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, Model
         search_filter = query_filter(q_param)
         email = q_param.get('email')
         if email:
-            queryset = self.model_class.objects.filter(profile__user__email=email)
+            queryset = self.model_class.objects.filter(profile__user__email=email).order_by('id')
         elif search_filter:
-            queryset = self.model_class.objects.filter(**search_filter)
+            queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         else:
-            queryset = self.model_class.objects.filter(profile=self.request.user.profile)
+            queryset = self.model_class.objects.filter(profile=self.request.user.profile).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -398,11 +396,11 @@ class EducationRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, ModelO
         search_filter = query_filter(q_param)
         email = q_param.get('email')
         if email:
-            queryset = self.model_class.objects.filter(profile__user__email=email)
+            queryset = self.model_class.objects.filter(profile__user__email=email).order_by('id')
         elif search_filter:
-            queryset = self.model_class.objects.filter(**search_filter)
+            queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         else:
-            queryset = self.model_class.objects.filter(profile=self.request.user.profile)
+            queryset = self.model_class.objects.filter(profile=self.request.user.profile).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -465,11 +463,11 @@ class SkillRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, ModelObjec
         search_filter = query_filter(q_param)
         email = q_param.get('email')
         if email:
-            queryset = self.model_class.objects.filter(profile__user__email=email)
+            queryset = self.model_class.objects.filter(profile__user__email=email).order_by('id')
         elif search_filter:
-            queryset = self.model_class.objects.filter(**search_filter)
+            queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         else:
-            queryset = self.model_class.objects.filter(profile=self.request.user.profile)
+            queryset = self.model_class.objects.filter(profile=self.request.user.profile).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -530,9 +528,9 @@ class TestRetriveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, AdminTypePer
         q_param = self.request.query_params
         search_filter = query_filter(q_param)
         if search_filter:
-            queryset = self.model_class.objects.filter(**search_filter)
+            queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         else:
-            queryset= self.model_class.objects.all()
+            queryset= self.model_class.objects.all().order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -597,9 +595,9 @@ class MyTestRetriveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, ModelObjec
         q_param = self.request.query_params
         search_filter = query_filter(q_param)
         if search_filter:
-            queryset = self.model_class.objects.filter(**search_filter)
+            queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         else:
-            queryset= self.model_class.objects.filter(profile = self.request.user.profile)
+            queryset= self.model_class.objects.filter(profile = self.request.user.profile).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
@@ -664,7 +662,7 @@ class QuestionRetriveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView, AdminTyp
     def get_queryset(self):
         q_param = self.request.query_params
         search_filter = query_filter(q_param)
-        queryset = self.model_class.objects.filter(**search_filter)
+        queryset = self.model_class.objects.filter(**search_filter).order_by('id')
         return queryset
 
     def get(self, request, *args, **kwargs):
