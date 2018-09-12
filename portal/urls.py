@@ -29,6 +29,8 @@ urlpatterns = [
     path('register/', appview.RegistrationAPIView.as_view(), name='register'),
     path('user/', appview.UserRetrieveUpdateAPIView.as_view(), name='user'),
     path('login/', appview.LoginAPIView.as_view(), name='login'),
+    path('change_password/', appview.UpdatePassword.as_view()),
+
 
     path('accounts/profile/', appview.ProfileRetrieveAPIView.as_view()),
     path('accounts/project/', appview.ProjectRetrieveUpdateDestroyAPIView.as_view()),
@@ -59,10 +61,12 @@ urlpatterns = [
     # path('social/', include('social_django.urls', namespace='social')),
     # path('auth/', include('rest_framework_social_oauth2.urls', namespace='auth')),
 
+
     path('admin/', admin.site.urls),
     path('api-token-auth/', obtain_jwt_token),
     path('api-token-refresh/', refresh_jwt_token),
     path('api-token-verify/', verify_jwt_token),
+
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 if settings.DEBUG is True:

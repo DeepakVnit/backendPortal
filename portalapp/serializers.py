@@ -1,10 +1,10 @@
 from django.contrib.auth import authenticate
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from .models import (Profile, Basic, Experience,
                     Education, Skill, Project,Test,
                      MyTest, User, Question)
-
 
 class RegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
@@ -58,6 +58,17 @@ class LoginSerializer(serializers.Serializer):
             'token': user.token
         }
 
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """
+    Serializer for password change endpoint.
+    """
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
 
 class ProjectSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='profile.user.username', read_only=True)
