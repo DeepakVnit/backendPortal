@@ -39,7 +39,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     'portalapp',
-
     'corsheaders',
     'rest_framework',
     # 'social_django',
@@ -183,3 +182,22 @@ JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(seconds=3000),
     'JWT_REFRESH_EXPIRATION_DELTA': datetime.timedelta(days=7),
 }
+
+# importing logger settings
+try:
+    from .portal_logging import *
+except Exception as e:
+    # in case of any error, pass silently.
+    pass
+
+LOG_LEVEL = 'DEBUG' if DEBUG else 'INFO'
+
+#Email
+EMAIL_USE_TLS = True
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_HOST_PASSWORD = 'whiteswan1991'
+EMAIL_HOST_USER = "deepakumar0931@gmail.com"
+EMAIL_PORT = 587
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER

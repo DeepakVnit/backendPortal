@@ -18,6 +18,10 @@ class UserDoesNotExist(APIException):
     default_detail = 'No User Found.'
 
 
+class EmailValidationException(APIException):
+    status_code = 400
+    default_detail = "Email field provided is not valid"
+
 def core_exception_handler(exc, context):
     response = exception_handler(exc, context)
     handlers = {

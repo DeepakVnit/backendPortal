@@ -1,3 +1,7 @@
+
+from django.utils.decorators import method_decorator
+from django.views.decorators.debug import sensitive_post_parameters
+from django.utils.translation import ugettext_lazy as _
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import RetrieveUpdateAPIView, CreateAPIView
@@ -5,6 +9,8 @@ from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.generics import GenericAPIView
+from rest_framework.decorators import api_view
 
 from .exceptions import (ProfileDoesNotExist,
                          PortalIsDown,
@@ -26,8 +32,17 @@ from .serializers import (
     EducationSerializer, SkillSerializer,
     TestSerializer, RegistrationSerializer,
     LoginSerializer, UserSerializer, MyTestSerializer,
-    QuestionSerializer, ChangePasswordSerializer)
+    QuestionSerializer, ChangePasswordSerializer,
+    PasswordResetSerializer, PasswordResetConfirmSerializer)
 
+import logging
+logger = logging.getLogger("info_logger")
+
+sensitive_post_parameters_m = method_decorator(
+    sensitive_post_parameters(
+        'password', 'old_password', 'new_password1', 'new_password2'
+    )
+)
 
 class RegistrationAPIView(APIView):
     # Allow any user (authenticated or not) to hit this endpoint.
@@ -65,6 +80,7 @@ class LoginAPIView(APIView):
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 class UpdatePassword(APIView):
     """
     An endpoint for changing password.
@@ -90,6 +106,121 @@ class UpdatePassword(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.contrib.auth import get_user_model
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+from django.template import loader
+from django.core.mail import EmailMultiAlternatives
+from django.conf import settings
+
+UserModel = get_user_model()
+
+def make_token(user):
+    token = default_token_generator.make_token(user)
+    print("Token created for password reset: {} - user: {}".format(token, user))
+    return token
+
+
+
+def send_mail(context, from_email, to_email,
+              subject_template_name = "password_reset_subject.txt", email_template_name= "password_reset_email.html",
+              html_email_template_name=None):
+        """
+        Send a django.core.mail.EmailMultiAlternatives to `to_email`.
+        """
+        subject = loader.render_to_string(subject_template_name, context)
+        # Email subject *must not* contain newlines
+        subject = ''.join(subject.splitlines())
+        body = loader.render_to_string(email_template_name, context)
+
+        email_message = EmailMultiAlternatives(subject, body, from_email, [to_email])
+        if html_email_template_name is not None:
+            html_email = loader.render_to_string(html_email_template_name, context)
+            email_message.attach_alternative(html_email, 'text/html')
+
+        email_message.send()
+
+class ForgotPassword(GenericAPIView):
+    permission_classes = (AllowAny,)
+
+    def get_users(self, email):
+        active_users = UserModel._default_manager.filter(**{
+            '%s__iexact' % UserModel.get_email_field_name(): email,
+            'is_active': True,
+        })
+        return active_users
+
+    def post(self, request, *args, **kwargs):
+        use_https = False #TODO
+        data = self.request.POST
+        email = data.get('email')
+        if not email:
+            return Response({"Error": "Email not provided"}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            user = self.get_users(email).first()
+            host = request.get_host()
+            domain = host.split(":")[0]
+            context = {
+                'email': email,
+                'domain': domain,
+                'site_name': domain, #site_name,
+                'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+                'user': user,
+                'token': make_token(user),
+                'protocol': 'https' if use_https else 'http',
+            }
+            print("context: {}".format(context))
+            send_mail(context, settings.EMAIL_HOST_USER,email)
+            return Response({"context": user.email}, status=status.HTTP_200_OK)
+
+
+def decode_token(uid,token):
+    token_generator = default_token_generator
+    try:
+        user = UserModel._default_manager.get(pk=uid)
+    except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+        user = None
+
+    if user is not None and token_generator.check_token(user, token):
+        validlink = True
+    else:
+        validlink = False
+    return validlink, user
+
+
+@api_view(["GET"])
+def password_reset_confirm(request, uidb64,token=None):
+    fulltoken = "{}-{}".format(uidb64, token)
+    uidb64, token = fulltoken.split("-",1)
+    uid = urlsafe_base64_decode(uidb64).decode()
+    validlink, user = decode_token(uid, token)
+    return Response({"validlink": validlink, "user": uid})
+
+
+from .serializers import ResetPasswordSerializer
+class NewPasswordUpdate(GenericAPIView):
+
+    def post(self, request, *args, **kwargs):
+        data = request.POST
+        serializer = ResetPasswordSerializer(data=data)
+        if not serializer.is_valid():
+            return Response({"Error": "Recheck Input Data"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if serializer.data.get('new_password1')!=serializer.data.get('new_password2'):
+            return Response({"Error": "new_password1 and new_password2 not matching!"}, status=status.HTTP_403_FORBIDDEN)
+
+        uid = urlsafe_base64_decode(serializer.data.get('uid')).decode()
+        valid, user = decode_token(uid, serializer.data.get('token'))
+        if not valid:
+            return Response({"Error": "Link provided is not valid."}, status=status.HTTP_403_FORBIDDEN)
+
+        user.set_password(serializer.data.get("new_password1"))
+        user.save()
+        return Response(
+            {"detail": _("Password has been reset with the new password.")}
+        )
 
 # # Have to call these functions for Gmail Authetication
 # from portal import settings

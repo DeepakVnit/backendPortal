@@ -70,6 +70,103 @@ class ChangePasswordSerializer(serializers.Serializer):
         validate_password(value)
         return value
 
+class ResetPasswordSerializer(serializers.Serializer):
+    """
+    Serializer for password change endpoint.
+    """
+    uid = serializers.CharField(required=True)
+    token = serializers.CharField(required=True)
+    new_password1 = serializers.CharField(required=True)
+    new_password2 = serializers.CharField(required=True)
+
+    def validate_new_password1(self, value):
+        validate_password(value)
+        return value
+
+
+from django.conf import settings
+from django.core.validators import validate_email
+from .exceptions import EmailValidationException
+from django.contrib.auth import get_user_model
+
+UserModel = get_user_model()
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate(self, value):
+        try:
+            validate_email(value)
+        except Exception:
+            raise EmailValidationException
+        return
+    #(u for u in active_users if u.has_usable_password())
+    def save(self):
+        email = self.cleaned_data["email"]
+        active_users = UserModel._default_manager.filter(**{
+            '%s__iexact' % UserModel.get_email_field_name(): email,
+            'is_active': True,
+        })
+        user = active_users.first()
+
+        # context = {
+        #     'email': email,
+        #     'domain': "www.example.com",
+        #     'site_name': "www.example.com",
+        #     'uid': urlsafe_base64_encode(force_bytes(user.pk)).decode(),
+        #     'user': user,
+        #     'token': token_generator.make_token(user),
+        #     'protocol': 'https' if use_https else 'http',
+        # }
+        # if extra_email_context is not None:
+        #     context.update(extra_email_context)
+        # self.send_mail(
+        #     subject_template_name, email_template_name, context, from_email,
+        #     email, html_email_template_name=html_email_template_name,
+        # )
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Serializer for requesting a password reset e-mail.
+    """
+    new_password1 = serializers.CharField(max_length=128)
+    new_password2 = serializers.CharField(max_length=128)
+    uid = serializers.CharField()
+    token = serializers.CharField()
+
+    # set_password_form_class = SetPasswordForm
+    #
+    # def custom_validation(self, attrs):
+    #     pass
+    #
+    # def validate(self, attrs):
+    #     self._errors = {}
+    #
+    #     # Decode the uidb64 to uid to get User object
+    #     try:
+    #         uid = force_text(uid_decoder(attrs['uid']))
+    #         self.user = UserModel._default_manager.get(pk=uid)
+    #     except (TypeError, ValueError, OverflowError, UserModel.DoesNotExist):
+    #         raise ValidationError({'uid': ['Invalid value']})
+    #
+    #     self.custom_validation(attrs)
+    #     # Construct SetPasswordForm instance
+    #     self.set_password_form = self.set_password_form_class(
+    #         user=self.user, data=attrs
+    #     )
+    #     if not self.set_password_form.is_valid():
+    #         raise serializers.ValidationError(self.set_password_form.errors)
+    #     if not default_token_generator.check_token(self.user, attrs['token']):
+    #         raise ValidationError({'token': ['Invalid value']})
+
+        # return attrs
+
+    def save(self):
+        return self.set_password_form.save()
+
+
+# Application Specific
 class ProjectSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='profile.user.username', read_only=True)
     profile_id = serializers.IntegerField(write_only=True)
